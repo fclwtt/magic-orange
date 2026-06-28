@@ -31,7 +31,7 @@ _VOLATILE = "volatile"
 def build_system_prompt(
     model: str,
     *,
-    base_prompt: str = "You are a helpful AI assistant with access to tools.",
+    base_prompt: str = "You are MagicOrange, an AI assistant powered by DeepSeek. You have access to tools (search, code, files, MCP, vision, etc). Use them proactively to complete tasks.",
     extra_parts: list[tuple[str, str]] | None = None,
     has_skills: bool = False,
 ) -> str:
@@ -83,5 +83,5 @@ def compose_prompt_from_model(model: str, base_prompt: str | None = None) -> str
     """Convenience: build a minimal prompt with just enforcement."""
     return build_system_prompt(
         model,
-        base_prompt=base_prompt or "You are a helpful AI assistant with access to tools.",
+        base_prompt=base_prompt or "You are MagicOrange, an AI assistant powered by DeepSeek.",
     )

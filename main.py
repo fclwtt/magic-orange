@@ -81,7 +81,7 @@ def main():
 
     agent = create_agent({
         "model": llm_cfg.get("model", "gpt-4"),
-        "api_key": llm_cfg.get("api_key") or os.getenv("OPENAI_API_KEY", ""),
+        "api_key": llm_cfg.get("api_key") or os.getenv("DEEPSEEK_API_KEY") or os.getenv("OPENAI_API_KEY", ""),
         "base_url": llm_cfg.get("base_url", "https://api.openai.com/v1"),
         "max_turns": cfg.get("session", {}).get("max_history", 30),
     })
