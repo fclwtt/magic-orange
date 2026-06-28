@@ -1,0 +1,6 @@
+from __future__ import annotations
+from typing import Any, Protocol
+
+class IAgentRuntime(Protocol):
+    def run_conversation(self, query: str) -> dict[str, Any]: ...
+    def reset(self) -> None: ...

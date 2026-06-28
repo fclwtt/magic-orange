@@ -1,0 +1,11 @@
+[project]
+name = "magic-orange"
+version = "0.1.0"
+description = "MagicOrange — Desktop Agent"
+requires-python = ">=3.11"
+dependencies = [
+    "openai>=1.0",
+    "pyyaml>=6.0",
+    "httpx>=0.27",
+    "websockets>=12.0",
+]

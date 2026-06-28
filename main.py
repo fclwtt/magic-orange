@@ -1,85 +1,82 @@
-#!/usr/bin/env python3
-"""
-MagicOrange A1 — 万能底座入口
+"""MagicOrange — 桌面 agent 后端"""
 
-基于 agent-component-library 的 api.py 层运行。
-"""
 from __future__ import annotations
 
-import os
-import sys
-import logging
-import yaml
+import os, sys, json, logging, yaml
 from pathlib import Path
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("magic-orange")
 
-# 如果组件库以本地路径引用，添加搜索路径
- _CL_LIB = Path(__file__).resolve().parent.parent / "agent-component-library"
-if _CL_LIB.exists() and str(_CL_LIB) not in sys.path:
-    sys.path.insert(0, str(_CL_LIB))
-
-from components.tool_system.api import create_tool_registry, ToolEntry
-from components.llm_client.api import create_openai_client
-from components.agent_engine.api import create_agent_runtime, AgentConfig
-from components.state_management.api import create_config_manager
+# ── 使用本地 base_agent（已复制到本目录） ─────────────────
+from base_agent import create_agent
 
 
-def load_config(path: str = "config/config.yaml") -> AgentConfig:
-    """加载配置"""
+def load_config(path: str = "config.yaml") -> dict:
     with open(path) as f:
-        cfg = yaml.safe_load(f)
-    return AgentConfig(
-        model=cfg.get("llm", {}).get("model", "gpt-4o-mini"),
-        max_turns=cfg.get("session", {}).get("max_history", 100),
-    )
+        return yaml.safe_load(f) or {}
 
 
-def init_system(config: AgentConfig):
-    """初始化所有子系统"""
-    logger.info("Initializing subsystems...")
-
-    cfg_mgr = create_config_manager()
-    logger.info("  ✅ config manager ready")
-
-    registry = create_tool_registry()
-    logger.info("  ✅ tool registry ready")
-
-    client = create_openai_client()
-    logger.info("  ✅ LLM client ready")
-
-    runtime = create_agent_runtime(config)
-    logger.info("  ✅ agent runtime ready")
-
-    return registry, client, runtime
-
-
-def cli_loop(runtime):
+def cli_loop(agent):
     """CLI 交互模式"""
-    print("\nMagicOrange A1 🍊  — 输入 /quit 退出\n")
-    session_id = "default"
-
+    print("\nMagicOrange 🍊  — 输入 /quit 退出\n")
     while True:
         try:
-            user_input = input("> ").strip()
+            query = input("> ").strip()
         except (EOFError, KeyboardInterrupt):
             print("\nGoodbye!")
             break
-
-        if not user_input:
-            continue
-        if user_input == "/quit":
+        if not query or query == "/quit":
             break
+        result = agent.run_conversation(query)
+        print(f"\n{result.get('final_response', '')}\n")
 
-        result = runtime.execute_turn(user_input, session_id)
-        print(f"\n{result.message}\n")
+
+def ws_loop(agent):
+    """WebSocket 模式 — 供 Electron 桌面壳调用"""
+    try:
+        import asyncio, websockets
+    except ImportError:
+        logger.error("WebSocket mode requires: pip install websockets")
+        sys.exit(1)
+
+    async def handler(websocket):
+        async for message in websocket:
+            try:
+                data = json.loads(message)
+                query = data.get("query", "")
+                if not query:
+                    continue
+                result = agent.run_conversation(query)
+                await websocket.send(json.dumps({
+                    "type": "response",
+                    "content": result.get("final_response", ""),
+                    "completed": result.get("completed", False),
+                }))
+            except Exception as e:
+                await websocket.send(json.dumps({"type": "error", "content": str(e)}))
+
+    port = int(os.getenv("MO_WS_PORT", "8765"))
+    logger.info("WebSocket server on ws://127.0.0.1:%d", port)
+    asyncio.run(websockets.serve(handler, "127.0.0.1", port))
 
 
 def main():
-    config = load_config()
-    _, _, runtime = init_system(config)
-    cli_loop(runtime)
+    cfg = load_config()
+    llm_cfg = cfg.get("llm", {})
+
+    agent = create_agent({
+        "model": llm_cfg.get("model", "gpt-4"),
+        "api_key": llm_cfg.get("api_key") or os.getenv("OPENAI_API_KEY", ""),
+        "base_url": llm_cfg.get("base_url", "https://api.openai.com/v1"),
+        "max_turns": cfg.get("session", {}).get("max_history", 30),
+    })
+
+    mode = sys.argv[1] if len(sys.argv) > 1 else "cli"
+    if mode == "--mode=ws" or mode == "ws":
+        ws_loop(agent)
+    else:
+        cli_loop(agent)
 
 
 if __name__ == "__main__":
