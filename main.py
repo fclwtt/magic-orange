@@ -14,7 +14,21 @@ from base_agent import create_agent
 
 def load_config(path: str = "config.yaml") -> dict:
     with open(path) as f:
-        return yaml.safe_load(f) or {}
+        cfg = yaml.safe_load(f) or {}
+    # 展开 `${VAR}` 和 `$VAR` 为环境变量值
+    return _expand_env(cfg)
+ 
+ 
+def _expand_env(obj):
+     """Recursively expand `${VAR}` in strings."""
+     import os
+     if isinstance(obj, str):
+         return os.path.expandvars(obj)
+     if isinstance(obj, dict):
+         return {k: _expand_env(v) for k, v in obj.items()}
+     if isinstance(obj, list):
+         return [_expand_env(v) for v in obj]
+     return obj
 
 
 def cli_loop(agent):
