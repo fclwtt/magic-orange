@@ -56,3 +56,9 @@ htmlcov/
 *.tmp
 *.bak
 *.swp
+ 
+ # Virtual environment
+ .venv/
+ 
+ # Node.js
+ node_modules/
