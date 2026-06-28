@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("magic-orange")
 
 # 如果组件库以本地路径引用，添加搜索路径
-_CL_LIB = Path(__file__).parent.parent.parent / "agent-component-library"
+ _CL_LIB = Path(__file__).resolve().parent.parent / "agent-component-library"
 if _CL_LIB.exists() and str(_CL_LIB) not in sys.path:
     sys.path.insert(0, str(_CL_LIB))
 
