@@ -2,38 +2,28 @@
 
 # LLM 配置
 llm:
-  # API 配置 (OpenAI 兼容格式)
-  api_key: "${OPENAI_API_KEY}"  # 从环境变量读取
-  base_url: "https://api.openai.com/v1"
-  model: "gpt-4o-mini"
-  
-  # 生成参数
-  temperature: 0.7
-  max_tokens: 4096
-  
-  # 重试配置
+  api_key: ${DEEPSEEK_API_KEY}
+  base_url: https://api.deepseek.com
   max_retries: 3
+  max_tokens: 4096
+  model: deepseek-chat
   retry_delay: 1.0
+  temperature: 0.7
 
 # 工具配置
 tools:
-  # 启用的工具集
-  enabled_toolsets:
-    - terminal
-    - file
-  
-  # 禁用的工具集
   disabled_toolsets: []
+  enabled_toolsets:
+  - terminal
+  - file
 
 # 会话配置
 session:
-  # 会话存储目录
-  storage_dir: "~/.magic-orange/sessions"
-  
-  # 最大历史消息数
   max_history: 100
+  storage_dir: ~/.magic-orange/sessions
 
 # 日志配置
 logging:
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
   level: INFO
-  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
