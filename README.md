@@ -7,8 +7,6 @@
  ```
  magic-orange/
  ├── config.yaml        # 配置文件
- ├── config/
- │   └── config.py      # 网关配置管理
  ├── desktop/           # Electron 桌面应用
  │   ├── main.js        # 主进程
  │   ├── preload.js     # 预加载脚本
