@@ -1,46 +1,404 @@
 <!DOCTYPE html>
-<html><head><meta charset="utf-8">
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
 <style>
+:root {
+  --bg: #1a1a2e;
+  --surface: #16213e;
+  --surface2: #0f3460;
+  --accent: #e94560;
+  --text: #e0e0e0;
+  --text-muted: #8892b0;
+  --border: #2a2a4a;
+  --success: #4ecca3;
+  --warning: #f0a500;
+  --radius: 12px;
+}
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, sans-serif; background: #1a1a2e; color: #e0e0e0; }
-#chat { height: calc(100vh - 60px); overflow-y: auto; padding: 16px; }
-#chat .msg { margin: 8px 0; padding: 10px 14px; border-radius: 8px; max-width: 80%; }
-#chat .user { background: #16213e; align-self: flex-end; margin-left: auto; }
-#chat .bot { background: #0f3460; }
-#input-bar { display: flex; gap: 8px; padding: 10px 16px; }
-#input-bar input { flex: 1; padding: 10px; border: none; border-radius: 6px; }
-#input-bar button { padding: 10px 20px; background: #e94560; color: white; border: none; border-radius: 6px; cursor: pointer; }
-</style></head><body>
-<div id="chat"></div>
-<div id="input-bar">
-<input id="msg-input" placeholder="输入消息..." autofocus />
-<button id="send-btn">发送</button>
+body {
+  font-family: -apple-system, "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+/* ── Top bar ── */
+#topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  font-size: 13px;
+}
+#topbar .title {
+  font-weight: 600;
+  color: var(--accent);
+}
+#topbar .status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#topbar .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+}
+#topbar .dot.disconnected { background: var(--warning); }
+#topbar button {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+#topbar button:hover { opacity: 0.85; }
+/* ── Chat area ── */
+#chat {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+#chat .msg {
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  line-height: 1.6;
+  font-size: 13px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  animation: fadeIn 0.2s ease;
+}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+#chat .user {
+  align-self: flex-end;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+#chat .assistant {
+  align-self: flex-start;
+  background: var(--surface2);
+}
+#chat .assistant.streaming {
+  border-left: 2px solid var(--accent);
+  padding-left: 12px;
+}
+#chat .assistant.error {
+  background: #3d1520;
+  color: #f87171;
+}
+#chat .tool-card {
+  align-self: flex-start;
+  max-width: 85%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin: 4px 0;
+  overflow: hidden;
+  font-size: 11px;
+}
+#chat .tool-card .head {
+  padding: 6px 10px;
+  background: rgba(233, 69, 96, 0.15);
+  color: var(--accent);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+#chat .tool-card .head .arrow {
+  transition: transform 0.2s;
+  font-size: 10px;
+}
+#chat .tool-card .head.open .arrow { transform: rotate(90deg); }
+#chat .tool-card .body {
+  padding: 8px 10px;
+  display: none;
+  max-height: 200px;
+  overflow-y: auto;
+  font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
+  font-size: 11px;
+  background: rgba(0,0,0,0.2);
+  color: var(--text-muted);
+}
+#chat .tool-card .body.open { display: block; }
+#chat .system-msg {
+  align-self: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 4px 10px;
+}
+/* ── Input bar ── */
+#input-bar {
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px 14px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+#input-bar input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+}
+#input-bar input:focus { border-color: var(--accent); }
+#input-bar input:disabled { opacity: 0.5; }
+#input-bar button {
+  padding: 10px 18px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+#input-bar button:hover { opacity: 0.85; }
+#input-bar button:disabled { opacity: 0.4; cursor: default; }
+/* ── Scrollbar ── */
+#chat::-webkit-scrollbar { width: 6px; }
+#chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div id="topbar">
+  <span class="title">MagicOrange</span>
+  <div class="status">
+    <span class="dot" id="status-dot"></span>
+    <span id="status-text">连接中...</span>
+    <button onclick="newSession()" title="新会话">+ 新会话</button>
+  </div>
 </div>
+
+<div id="chat"></div>
+
+<div id="input-bar">
+  <input id="msg-input" placeholder="输入消息..." autofocus disabled />
+  <button id="send-btn" onclick="sendMessage()" disabled>发送</button>
+</div>
+
 <script>
+// ── State ──
+let isConnected = false;
+let isStreaming = false;
+let streamingBubble = null;
+let toolCards = new Map();  // tool_name -> DOM element
+let cleanupListener = null;
+
 const chat = document.getElementById("chat");
 const input = document.getElementById("msg-input");
-const btn = document.getElementById("send-btn");
+const sendBtn = document.getElementById("send-btn");
+const statusDot = document.getElementById("status-dot");
+const statusText = document.getElementById("status-text");
 
-const ws = new WebSocket("ws://localhost:8765");
-ws.onmessage = (e) => addMsg("bot", e.data);
+// ── Init ──
+function init() {
+  cleanupListener = window.moAPI.onEvent(handleEvent);
+  window.moAPI.getStatus().then((s) => {
+    if (s.connected) setConnected(true);
+  });
+}
 
-function addMsg(role, text) {
-  const div = document.createElement("div");
-  div.className = "msg " + role;
+function setConnected(yes) {
+  isConnected = yes;
+  statusDot.className = "dot" + (yes ? "" : " disconnected");
+  statusText.textContent = yes ? "已连接" : "未连接";
+  input.disabled = !yes;
+  sendBtn.disabled = !yes;
+  if (yes) input.focus();
+}
+
+// ── Event handler ──
+function handleEvent(event) {
+  const { type, payload, session_id } = event;
+  console.log("[mo]", type, payload);
+
+  switch (type) {
+    case "connection.closed":
+      setConnected(false);
+      appendSystem("⚠ 后端已断开，正在重连...");
+      break;
+
+    case "session.created":
+      appendSystem(`# ${session_id ? session_id.slice(0,8) : ""} 新会话`);
+      break;
+
+    case "message.delta":
+      if (!streamingBubble) {
+        streamingBubble = appendAssistant("", true);
+      }
+      streamingBubble.textContent += payload.text || "";
+      scrollDown();
+      break;
+
+    case "tool.start":
+      streamingBubble = null;  // close the text bubble
+      isStreaming = true;
+      const tc = appendToolCard(payload.tool_name, "");
+      toolCards.set(payload.tool_name, tc);
+      break;
+
+    case "tool.complete":
+      const card = toolCards.get(payload.tool_name);
+      if (card) {
+        card.querySelector(".body").textContent = payload.result || "(empty)";
+        card.querySelector(".body").classList.add("open");
+        card.querySelector(".head").classList.add("open");
+      }
+      scrollDown();
+      break;
+
+    case "message.complete":
+      streamingBubble = null;
+      isStreaming = false;
+      // Replace streaming bubble with final text if we were streaming
+      const bubbles = chat.querySelectorAll(".assistant.streaming");
+      bubbles.forEach((b) => {
+        b.classList.remove("streaming");
+        if (payload.text && b.textContent !== payload.text) {
+          b.textContent = payload.text;
+        }
+      });
+      scrollDown();
+      break;
+
+    case "error":
+      streamingBubble = null;
+      isStreaming = false;
+      appendError(payload.message || "未知错误");
+      break;
+  }
+}
+
+// ── Message builders ──
+function appendUser(text) {
+  const div = makeMsg("user");
   div.textContent = text;
   chat.appendChild(div);
+  scrollDown();
+}
+
+function appendAssistant(text, streaming) {
+  const div = makeMsg("assistant");
+  if (streaming) div.classList.add("streaming");
+  div.textContent = text;
+  chat.appendChild(div);
+  scrollDown();
+  return div;
+}
+
+function appendError(text) {
+  const div = makeMsg("assistant", "error");
+  div.textContent = "❌ " + text;
+  chat.appendChild(div);
+  scrollDown();
+}
+
+function appendSystem(text) {
+  const div = makeMsg("system-msg");
+  div.textContent = text;
+  chat.appendChild(div);
+  scrollDown();
+}
+
+function appendToolCard(name, initial) {
+  const div = document.createElement("div");
+  div.className = "tool-card";
+  div.innerHTML = `<div class="head" onclick="toggleTool(this)">
+    <span class="arrow">▶</span> 🔧 ${escapeHtml(name)}
+  </div><div class="body">${escapeHtml(initial) || "执行中..."}</div>`;
+  chat.appendChild(div);
+  scrollDown();
+  return div;
+}
+
+function makeMsg(baseClass, extraClass) {
+  const div = document.createElement("div");
+  div.className = "msg " + baseClass + (extraClass ? " " + extraClass : "");
+  return div;
+}
+
+function toggleTool(headEl) {
+  headEl.classList.toggle("open");
+  headEl.nextElementSibling.classList.toggle("open");
+}
+
+function escapeHtml(s) {
+  const d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function scrollDown() {
   chat.scrollTop = chat.scrollHeight;
 }
 
-function send() {
+// ── Actions ──
+async function sendMessage() {
   const text = input.value.trim();
-  if (!text) return;
-  addMsg("user", text);
-  ws.send(text);
+  if (!text || !isConnected || isStreaming) return;
+
+  appendUser(text);
   input.value = "";
+  isStreaming = true;
+  streamingBubble = null;
+
+  try {
+    const res = await window.moAPI.sendMessage(text);
+    if (res && res.error) {
+      appendError(res.error);
+      isStreaming = false;
+    }
+  } catch (err) {
+    appendError(err.message);
+    isStreaming = false;
+  }
 }
 
-btn.onclick = send;
-input.onkeydown = (e) => { if (e.key === "Enter") send(); };
+async function newSession() {
+  // Clear UI
+  chat.innerHTML = "";
+  toolCards.clear();
+  streamingBubble = null;
+  isStreaming = false;
+  try {
+    await window.moAPI.newSession();
+    appendSystem("新会话已创建");
+    input.focus();
+  } catch (_) {}
+}
+
+// ── Key bindings ──
+input.onkeydown = (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+};
+
+sendBtn.onclick = sendMessage;
+
+// ── Startup ──
+init();
 </script>
-</body></html>
+</body>
+</html>

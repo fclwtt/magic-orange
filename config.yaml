@@ -10,6 +10,15 @@ llm:
   retry_delay: 1.0
   temperature: 0.7
 
+# 代理配置（可选）
+# 程序会自动读取 HTTPS_PROXY / HTTP_PROXY / ALL_PROXY 环境变量
+# 下方可显式指定，为空则使用环境变量
+proxy: ""
+no_proxy: ""
+
+# Agent 行为配置
+tool_use_enforcement: auto  # auto(按模型匹配) | true(始终启用) | false(关闭)
+
 # 工具配置
 tools:
   disabled_toolsets: []
@@ -19,8 +28,23 @@ tools:
 
 # 会话配置
 session:
-  max_history: 100
+  max_history: 100         # 上下文窗口最大消息数
+  max_iterations: 60       # 单次对话最多工具调用轮数（IterationBudget 上限）
   storage_dir: ~/.magic-orange/sessions
+
+# 工具循环护栏 (Hermes-style tool loop guardrails)
+# 检测模型是否在死循环中反复调用失败/无进展的工具
+tool_loop_guardrails:
+  warnings_enabled: true    # 启用软警告（不阻止执行，在结果中提示）
+  hard_stop_enabled: false  # 启用硬阻断（直接阻止死循环工具调用）
+  warn_after:
+    exact_failure: 2        # 完全相同的调用失败 N 次后警告
+    same_tool_failure: 3    # 同一工具反复失败 N 次后警告
+    idempotent_no_progress: 2  # 只读工具（搜索/读文件）返回相同结果 N 次后警告
+  hard_stop_after:
+    exact_failure: 5        # 完全相同的调用失败 N 次后阻断
+    same_tool_failure: 8    # 同一工具反复失败 N 次后强停
+    idempotent_no_progress: 5  # 只读工具无进展 N 次后阻断
 
 # 日志配置
 logging:

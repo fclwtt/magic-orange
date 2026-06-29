@@ -60,5 +60,12 @@ htmlcov/
  # Virtual environment
  .venv/
  
- # Node.js
- node_modules/
+# Node.js
+node_modules/
+
+# WorkBuddy
+.workbuddy/
+
+# Test / scratch files
+test.py
+_test_exec.py
